@@ -1,0 +1,104 @@
+from enum import Enum, auto
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional, Set
+import re
+from datetime import time, datetime
+
+
+class ContentType(Enum):
+    TEXT = auto()
+    IMAGE = auto()
+    LINK = auto()
+    METADATA = auto()
+
+
+class RiskLevel(Enum):
+    LOW = auto()
+    MEDIUM = auto()
+    HIGH = auto()
+
+
+class Decision(Enum):
+    ALLOW = auto()
+    WARN = auto()
+    BLOCK = auto()
+    REQUIRE_PARENT = auto()
+
+
+@dataclass
+class SafetyFinding:
+    risk: RiskLevel
+    category: str
+    message: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SafetyResult:
+    decision: Decision
+    findings: List[SafetyFinding]
+
+
+class ChildSafetyPolicy:
+    """
+    Configurable policy for different child age groups.
+
+    This holds:
+    - keyword lists (profanity, sexual content, violence)
+    - simple personal information patterns
+    - disallowed URL categories
+    - quiet hours logic (e.g., 22:00–06:00 for younger kids)
+    """
+
+    def __init__(self, min_age: int, max_age: int):
+        self.min_age = min_age
+        self.max_age = max_age
+
+        # Basic keyword lists – in a real system, this would be external config.
+        # These are placeholders; you’d swap in your own curated lists.
+        self.profane_keywords: Set[str] = {"badword1", "badword2"}
+        self.sexual_keywords: Set[str] = {"explicit1", "explicit2"}
+        self.violence_keywords: Set[str] = {"violence1", "violence2"}
+
+        # Very simple patterns for personal info detection
+        self.personal_info_patterns = [
+            re.compile(r"\b\d{10}\b"),  # simple phone number pattern
+            re.compile(r"\b\d{3}[- ]?\d{2}[- ]?\d{4}\b"),  # e.g., ID-like pattern
+        ]
+
+        # Example URL categories disallowed for children
+        self.disallowed_url_keywords: Dict[str, List[str]] = {
+            "gambling": ["casino", "bet", "poker"],
+            "adult_content": ["adultsite", "nsfw"],
+        }
+
+        # Quiet hours (e.g., 22:00–06:00) for younger children
+        self.enforce_quiet_hours = self.max_age <= 13
+        self.quiet_hours = (time(22, 0), time(6, 0))
+
+    def is_quiet_hours(self, ts: datetime) -> bool:
+        start, end = self.quiet_hours
+        if start < end:
+            # typical same-day window, e.g., 14:00–16:00
+            return start <= ts.time() <= end
+        # Overnight window (e.g., 22:00–06:00)
+        return ts.time() >= start or ts.time() <= end
+
+
+class ChildSafetyEngine:
+    """
+    Rule-based child safety engine for chat messages and links.
+
+    Features:
+    - Text scanning (profanity, sexual content, violence, personal info)
+    - URL scanning (disallowed categories)
+    - Metadata checks (unknown sender, quiet hours)
+    - Clear final decision: ALLOW, WARN, BLOCK, REQUIRE_PARENT
+    """
+
+    def __init__(self, policy: ChildSafetyPolicy):
+        self.policy = policy
+
+    # ---------- Public API ----------
+
+   
