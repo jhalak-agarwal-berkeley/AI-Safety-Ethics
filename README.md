@@ -13,3 +13,5 @@ This project demonstrates:
 - How to operationalize child-specific safety policies
 - How rule-based systems can augment AI systems
 - How to design transparent, explainable safety layers for online interactions
+
+This project demonstrates my ability to formalize risks, design evaluation cases, and build explainable safety guardrails—skills I want to deepen through scalable oversight research.
